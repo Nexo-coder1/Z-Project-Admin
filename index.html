@@ -498,11 +498,11 @@ function startAdminDataListeners(){stopAdminDataListeners();
  adminValue(rewardsRef,s=>{const v=s.val();REWARDS_ALL=v?Object.keys(v).map(k=>({id:k,...v[k]})):[];tryRender()});
  adminValue(categoriesRef,s=>{const v=s.val();CATEGORIES=v?Object.keys(v).map(k=>({id:k,...v[k]})):[];tryRender()});
  adminValue(offersRef,s=>{const v=s.val();OFFERS=v?Object.keys(v).map(k=>({id:k,...v[k]})):[];tryRender()});
- adminValue(productsRef,s=>{PRODUCTS=s.val()?Object.values(s.val()):[];tryRender()},()=>{PRODUCTS=[]},'products');
- adminValue(ordersRef,s=>{const raw=s.val()||{};ORDERS=Object.values(raw).filter(isValidOrderRecord);ORDERS.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));rebuildCustomers();checkForNewOrders();tryRender()},err=>{ORDERS=[];CUSTOMERS=[];tryRender()},'orders');
+ adminValue(productsRef,s=>{PRODUCTS=s.val()?Object.entries(s.val()).map(([k,v])=>({...v,firebaseKey:v.firebaseKey||k})):[];tryRender()},()=>{PRODUCTS=[]},'products');
+ adminValue(ordersRef,s=>{const raw=s.val()||{};ORDERS=Object.entries(raw).map(([k,v])=>({...v,firebaseKey:v.firebaseKey||k})).filter(isValidOrderRecord);ORDERS.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));rebuildCustomers();checkForNewOrders();tryRender()},err=>{ORDERS=[];CUSTOMERS=[];tryRender()},'orders');
  adminValue(ratingsRef,s=>{RATINGS=s.val()?Object.values(s.val()):[];tryRender()});
  adminValue(configRef,s=>{CONFIG=s.val()||{};HERO_IMAGE_URL=CONFIG.heroImage||'';BANNER_TEXT=CONFIG.bannerText||'';APP_LOGO_URL=CONFIG.appLogo||'';if(APP_LOGO_URL){$('#admin-logo').src=APP_LOGO_URL;$('#admin-logo').style.display='block'}else{$('#admin-logo').style.display='none'}tryRender()},err=>{CONFIG={};tryRender()},'config');
- adminValue(deliveryRef,s=>{DELIVERY_APPS=s.val()?Object.values(s.val()):[];tryRender()},()=>{DELIVERY_APPS=[]},'delivery');
+ adminValue(deliveryRef,s=>{DELIVERY_APPS=s.val()?Object.entries(s.val()).map(([k,v])=>({...v,firebaseKey:v.firebaseKey||k})):[];tryRender()},()=>{DELIVERY_APPS=[]},'delivery');;
  adminValue(deliveryKYCRef,s=>{DELIVERY_KYC=s.val()||{};tryRender()},()=>{DELIVERY_KYC={}});
 }
 function bootAdminAuth(){
@@ -585,7 +585,7 @@ function render(){
   // Route to appropriate screen
   if(!route||route==="dashboard")renderDashboard();
   else if(route==="products")renderProducts();
-  else if(route==="addproduct")renderAddProduct(null);
+  else if(route==="addproduct"||route==="add")renderAddProduct(null);
   else if(route==="settings")renderSettings();
   else if(route==="orders"&&param)renderOrderDetail(param);
   else if(route==="orders")renderOrders();
