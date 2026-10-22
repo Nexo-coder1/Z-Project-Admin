@@ -2255,6 +2255,7 @@ function vendorApplicationsListHtml(list){
         ${pending>0?`<button class="btn btn-sm btn-success" style="margin-top:8px" onclick="markVendorSettled('${v.uid}',${e.vendorEarnings})">Mark ${money(pending)} as Paid</button>`:''}`;
       })():''}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-sm btn-outline" onclick="openVendorDetails('${v.uid}')">View Details</button>
         ${v.status==='pending_approval'?`<button class="btn btn-sm btn-success" onclick="setVendorStatus('${v.uid}','Approved')">Approve</button><button class="btn btn-sm btn-danger" onclick="setVendorStatus('${v.uid}','rejected')">Reject</button>`:''}
         ${v.status==='Approved'?`<button class="btn btn-sm btn-outline" onclick="setVendorStatus('${v.uid}','suspended')">Suspend</button><button class="btn btn-sm btn-danger" onclick="setVendorStatus('${v.uid}','blocked')">Block</button>`:''}
         ${(v.status==='suspended'||v.status==='blocked'||v.status==='rejected')?`<button class="btn btn-sm btn-success" onclick="setVendorStatus('${v.uid}','Approved')">Reactivate</button>`:''}
@@ -2274,6 +2275,34 @@ function setVendorStatus(uid,status){
   if(status==='Approved')updates.approvedAt=Date.now();
   vendorsRef.child(uid).update(updates).then(()=>toast("Vendor status updated: "+status)).catch(()=>alert("Failed."));
 }
+function setVendorKyc(uid,status){
+  vendorsRef.child(uid).update({kycStatus:status,kycReviewedAt:Date.now()}).then(()=>toast("KYC "+status)).catch(()=>alert("Failed."));
+}
+function openVendorDetails(uid){
+  const v=VENDORS_ALL.find(x=>x.uid===uid);
+  if(!v){alert("Vendor not found");return}
+  const row=(label,val)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #e5e7eb"><span class="muted">${label}</span><strong style="text-align:right;word-break:break-all">${escapeHtml(String(val||'—'))}</strong></div>`;
+  const thumbs=(arr,name)=>(arr||[]).map((u,i)=>`<a href="${u}" download="${name}-${i+1}.jpg"><img src="${u}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;margin:4px"></a>`).join('')||'<span class="muted">None</span>';
+  const div=document.createElement('div');
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  div.innerHTML=`<div style="background:#fff;width:100%;max-width:520px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong style="font-size:18px">${escapeHtml(v.restaurantName||'Vendor')}</strong><button id="vd-close">Close</button></div>
+    ${row('Owner',v.ownerName)}${row('Mobile',v.mobile)}${row('Email',v.email)}${row('Address',v.address)}${row('City',v.city)}${row('Pincode',v.pincode)}${row('Category',v.category)}${row('Opening time',v.openingTime)}${row('Closing time',v.closingTime)}
+    <h4 style="margin:14px 0 6px">Legal / KYC</h4>
+    ${row('GST',v.gst)}${row('FSSAI',v.fssai)}${row('Aadhar / PAN',v.idProof)}
+    <div style="margin:10px 0">KYC status: <strong>${escapeHtml(v.kycStatus||'Pending')}</strong></div>
+    <div style="display:flex;gap:8px"><button id="vd-kyc-ok">KYC Approve</button><button id="vd-kyc-no">KYC Reject</button></div>
+    <h4 style="margin:14px 0 6px">Payout</h4>
+    ${row('Bank account',v.bankAccount)}${row('UPI ID',v.upiId)}
+    <h4 style="margin:14px 0 6px">Restaurant Logo</h4><div>${thumbs(v.logoUrl?[v.logoUrl]:[],'logo')}</div>
+    <h4 style="margin:14px 0 6px">Restaurant Images</h4><div>${thumbs(v.imageUrls,'photo')}</div>
+    <h4 style="margin:14px 0 6px">Documents (GST / FSSAI / ID)</h4><div>${thumbs(v.documentUrls,'document')}</div>
+  </div>`;
+  document.body.appendChild(div);
+  div.addEventListener('click',e=>{if(e.target===div||e.target.id==='vd-close')div.remove()});
+  div.querySelector('#vd-kyc-ok').addEventListener('click',()=>{setVendorKyc(uid,'Approved');div.remove()});
+  div.querySelector('#vd-kyc-no').addEventListener('click',()=>{setVendorKyc(uid,'Rejected');div.remove()});
+  }
 function markVendorSettled(uid,totalEarnings){
   vendorsRef.child(uid).update({settledAmount:totalEarnings,lastSettlementAt:Date.now()}).then(()=>toast("Settlement recorded")).catch(()=>alert("Failed."));
 }
